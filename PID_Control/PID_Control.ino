@@ -2,34 +2,51 @@
 #include <LiquidCrystal.h>
 #include <MsTimer2.h>
 #define FREQ_CTRL 200
-#define MAX_SPEED 70
-#define MIN_SPEED -20
+#define MAX_SPEED 52
+#define MIN_SPEED -40
 #define BASE_SPEED 40
 #define I2C_ADDRESS 42
+
+const int rs = 7, en = 6, d4 = 5, d5 = 4, d6 = 3, d7 = 2;
+LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
+
 
 int motorsBase[4];
 int motors[4];
 float offset = 0;
 int error = 0;
 int errorSum = 0;
-int errorOld = 0;
+int prev_error = 0;
 float kp, kd, ki;
 
 unsigned char dataRaw[16];
 unsigned int sensorData[8];
-const int ratio[8] = { -60, -35, -15, -5, 5, 15, 35, 60 };
+const int ratio[8] = { -70, -17, -7, -3, 3, 7, 17, 70 };
 
 void setup() {
   Wire.begin();
-  Serial.begin(9600);  // Start serial for output to PC
-                       // timer_init();
+  Serial.begin(9600);  // Start serial for output to PC 
+  lcd.begin(16,2);
   for (int i = 0; i < 4; i++) {
     motors[i] = BASE_SPEED;
     motorsBase[i] =BASE_SPEED;
-  } 
+  }
 }
-
+int count = 0;
 void loop() {
+  if (count < 20) {
+    count++;
+  }
+  else {
+    lcd.setCursor(0, 0);
+    lcd.print(error);
+    lcd.print("                ");
+    lcd.setCursor(0, 1);
+    lcd.print(offset);
+    lcd.print("                ");
+    count = 0;
+  }
+
   delay(10);
   move();
   // for (int i = 0; i < 8; i++) {
@@ -38,33 +55,35 @@ void loop() {
 
   // }
   // Serial.println();
-
-  // Serial.println(error);
+  
   // Serial.print("\t");
   // Serial.print(motors[0]);
   // Serial.print("\t");
   // Serial.println(motors[4]);
   readSensorData();
   updateMotors();
+  
 }
-
+float newOffset = 0; 
 void updateMotors() {
   calculateError();
   errorSum += error;
-  // kp = 4.00;
-  // ki = 0.085;
-  // kd = 0;
 
-  kp = 12;
-  ki = 0.08;
-  kd = 0;
+  kp = 3.93;
+  ki = 0.0916;
+  kd = 1.8;
+  // kp = 5;
+  // ki = 0.13;
+  // kd = 1;
 
-  offset = (float)kp * error - kd * abs(error - errorOld) + ki * errorSum;
+
+
+  offset = (float)kp * error + ki * errorSum + kd * (error - prev_error); 
   motors[0] = constrain(motorsBase[0] - offset, MIN_SPEED, MAX_SPEED);  // 右前
   motors[1] = constrain(motorsBase[0] - offset, MIN_SPEED, MAX_SPEED);  // 右后
   motors[3] = constrain(motorsBase[3] + offset, MIN_SPEED, MAX_SPEED);  // 左后
   motors[2] = constrain(motorsBase[3] + offset, MIN_SPEED, MAX_SPEED);  // 左前
-  errorOld = error;
+  prev_error = error;
 }
 
 void calculateError() {
