@@ -3,11 +3,12 @@
 #include <MsTimer2.h>
 #define FREQ_CTRL 200
 #define MAX_SPEED 70
-#define MIN_SPEED 0
+#define MIN_SPEED -20
+#define BASE_SPEED 40
 #define I2C_ADDRESS 42
 
-int motorsBase[4] = { 20, 20, 20, 20 };
-int motors[4] = { 0, 0, 0, 0 };
+int motorsBase[4];
+int motors[4];
 float offset = 0;
 int error = 0;
 int errorSum = 0;
@@ -16,28 +17,21 @@ float kp, kd, ki;
 
 unsigned char dataRaw[16];
 unsigned int sensorData[8];
-const int ratio[8] = { -40, -25, -15, -5, 5, 15, 25, 40 };
+const int ratio[8] = { -60, -35, -15, -5, 5, 15, 35, 60 };
 
 void setup() {
   Wire.begin();
   Serial.begin(9600);  // Start serial for output to PC
-  // timer_init();
+                       // timer_init();
+  for (int i = 0; i < 4; i++) {
+    motors[i] = BASE_SPEED;
+    motorsBase[i] =BASE_SPEED;
+  } 
 }
 
 void loop() {
   delay(10);
-  readSensorData();
-  updateMotors();
-  // if (motors[0] < 0) {
-  //   move("barrff");
-  // }
-  // else if (motors[4] < 0) {
-  //   move("baffrr");
-  // }
-  // else {
-  move("baffff");
-  // }
-
+  move();
   // for (int i = 0; i < 8; i++) {
   //   Serial.print(sensorData[i]);
   //   Serial.print("\t");
@@ -50,6 +44,8 @@ void loop() {
   // Serial.print(motors[0]);
   // Serial.print("\t");
   // Serial.println(motors[4]);
+  readSensorData();
+  updateMotors();
 }
 
 void updateMotors() {
@@ -59,11 +55,11 @@ void updateMotors() {
   // ki = 0.085;
   // kd = 0;
 
-  kp = 4.00;
+  kp = 12;
   ki = 0.08;
   kd = 0;
 
-  offset = (float)kp * error - kd * (error - errorOld) + ki * errorSum;
+  offset = (float)kp * error - kd * abs(error - errorOld) + ki * errorSum;
   motors[0] = constrain(motorsBase[0] - offset, MIN_SPEED, MAX_SPEED);  // 右前
   motors[1] = constrain(motorsBase[0] - offset, MIN_SPEED, MAX_SPEED);  // 右后
   motors[3] = constrain(motorsBase[3] + offset, MIN_SPEED, MAX_SPEED);  // 左后
@@ -79,9 +75,18 @@ void calculateError() {
   error /= 100;
 }
 
-void move(char cmd[]) {
+void move() {
   Wire.beginTransmission(I2C_ADDRESS);
-  Wire.write(cmd);
+  if (motors[0] >= 0 && motors[3] >= 0) {
+    Wire.write("bafffr");
+  }
+  else if (motors[0] < 0) {
+    Wire.write("barrfr");
+  }
+  else if (motors[3] < 0) {
+    Wire.write("baffrf");
+  }
+
   for (int i = 0; i < 4; i++) {
     Wire.write(abs(motors[i]));
     Wire.write(0);
@@ -102,7 +107,7 @@ void readSensorData(void) {
       n++;
     } else {
       Wire.read();  // Discard any bytes over the 16 we need
-      //n = 0;
+      // n = 0;
     }
   }
 
