@@ -105,11 +105,11 @@ void updateEncoder() {
 void options() {
   switch(display_state) {
     case DISPLAY_KP:
-      return DISPLAY_KI;
+      display_state = DISPLAY_KI;
     case DISPLAY_KI:
-      return DISPLAY_KD;
+      display_state = DISPLAY_KD;
     case DISPLAY_KD:
-      return DISPLAY_KP;
+      dispaly_state = DISPLAY_KP;
   }
 }
 
