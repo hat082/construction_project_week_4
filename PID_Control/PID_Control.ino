@@ -2,7 +2,7 @@
 #include <LiquidCrystal.h>
 #include <MsTimer2.h>
 #define FREQ_CTRL 200
-#define MAX_SPEED 70
+#define MAX_SPEED 60
 #define MIN_SPEED -40
 #define BASE_SPEED 40
 #define I2C_ADDRESS 42
@@ -21,7 +21,12 @@ float kp, kd, ki;
 
 unsigned char dataRaw[16];
 unsigned int sensorData[8];
-const int ratio[8] = { -70, -40, -10, -5, 5, 10, 40, 70 };
+const int ratio[8] = { -30, -25, -10, -5, 5, 10, 25, 30 };
+
+void timer_init() {
+  MsTimer2::set((1000 / FREQ_CTRL), Timer2ISR);
+  MsTimer2::start();
+}
 
 void setup() {
   Wire.begin();
@@ -29,9 +34,15 @@ void setup() {
   lcd.begin(16,2);
   for (int i = 0; i < 4; i++) {
     motors[i] = BASE_SPEED;
-    motorsBase[i] =BASE_SPEED;
+    motorsBase[i] = BASE_SPEED;
   }
+  timer_init();
 }
+
+void Timer2ISR() {
+  updateMotors();
+}
+
 int count = 0;
 void loop() {
   if (count < 20) {
@@ -61,31 +72,40 @@ void loop() {
   // Serial.print("\t");
   // Serial.println(motors[4]);
   readSensorData();
-  updateMotors();
-  
 }
 float newOffset = 0; 
 void updateMotors() {
   calculateError();
   errorSum += error;
-
+  if (sensorData[7] > sensorData[6]) {
+    errorSum += 0.5 * (sensorData[7] - sensorData[6]);
+  }
   // kp = 3.93;
   // ki = 0.0926;
   // kd = 2.1;
 
-  kp = 3.98;
-  ki = 0.0896;
-  kd = 1.6;
-
-
-
+  kp = 4.9;
+  ki = 0.012;
+  kd = 7;
 
   offset = (float)kp * error + ki * errorSum + kd * (error - prev_error); 
-  motors[0] = constrain(motorsBase[0] - offset, MIN_SPEED, MAX_SPEED);  // 右前
-  motors[1] = constrain(motorsBase[0] - offset, MIN_SPEED, MAX_SPEED);  // 右后
-  motors[3] = constrain(motorsBase[3] + offset, MIN_SPEED, MAX_SPEED);  // 左后
-  motors[2] = constrain(motorsBase[3] + offset, MIN_SPEED, MAX_SPEED);  // 左前
+  motors[0] = constrain(motorsBase[0] + map(-offset), MIN_SPEED, MAX_SPEED);  // 右前
+  motors[1] = constrain(motorsBase[0] + map(-offset), MIN_SPEED, MAX_SPEED);  // 右后
+
+  motors[2] = constrain(motorsBase[3] + map(+offset), MIN_SPEED, MAX_SPEED);  // 左前
+  motors[3] = constrain(motorsBase[3] + map(+offset), MIN_SPEED, MAX_SPEED);  // 左后
   prev_error = error;
+}
+
+float map(float num) {
+  int negative = MIN_SPEED - BASE_SPEED;
+  int positive = BASE_SPEED - MAX_SPEED;
+  if (num <= 0) {
+    return 1.8 * num;
+  }
+  if (num > 0) {
+    return num;
+  }
 }
 
 void calculateError() {
