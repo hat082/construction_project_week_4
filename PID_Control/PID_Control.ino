@@ -29,6 +29,7 @@ volatile int pinAStateLast = pinAStateCurrent;   // Last read value of Pin A
 int button = 8;
 
 int motors[4];
+int motorsBase[4];
 float offset = 0;
 int error = 0;
 int errorSum = 0;
@@ -37,7 +38,7 @@ float kp, kd, ki;
 
 unsigned char dataRaw[16];
 unsigned int sensorData[8];
-const int ratio[8] = { -70, -17, -7, -3, 3, 7, 17, 70 };
+const int ratio[8] = { -70, -30, -7, -3, 3, 7, 30, 70 };
 
 void pin_init() {
   pinMode(button, INPUT_PULLUP);
@@ -109,7 +110,7 @@ void options() {
     case DISPLAY_KI:
       display_state = DISPLAY_KD;
     case DISPLAY_KD:
-      dispaly_state = DISPLAY_KP;
+      display_state = DISPLAY_KP;
   }
 }
 
@@ -146,10 +147,10 @@ void updateMotors() {
   kd = 1.8;
 
   offset = (float)kp * error + ki * errorSum + kd * (error - prev_error); 
-  motors[0] = constrain(motors[0] - offset, MIN_SPEED, MAX_SPEED);  // 右前
-  motors[1] = constrain(motors[1] - offset, MIN_SPEED, MAX_SPEED);  // 右后
-  motors[3] = constrain(motors[2] + offset, MIN_SPEED, MAX_SPEED);  // 左后
-  motors[2] = constrain(motors[3] + offset, MIN_SPEED, MAX_SPEED);  // 左前
+  motors[0] = constrain(motorsBase[0] - offset, MIN_SPEED, MAX_SPEED);  // 右前
+  motors[1] = constrain(motorsBase[1] - offset, MIN_SPEED, MAX_SPEED);  // 右后
+  motors[3] = constrain(motorsBase[2] + offset, MIN_SPEED, MAX_SPEED);  // 左后
+  motors[2] = constrain(motorsBase[3] + offset, MIN_SPEED, MAX_SPEED);  // 左前
   prev_error = error;
 }
 
