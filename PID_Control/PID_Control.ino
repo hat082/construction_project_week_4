@@ -2,7 +2,7 @@
 #include <LiquidCrystal.h>
 #include <MsTimer2.h>
 #define FREQ_CTRL 200
-#define MAX_SPEED 65
+#define MAX_SPEED 70
 #define MIN_SPEED -40
 #define BASE_SPEED 40
 #define I2C_ADDRESS 42
@@ -21,7 +21,7 @@ float kp, kd, ki;
 
 unsigned char dataRaw[16];
 unsigned int sensorData[8];
-const int ratio[8] = { -70, -30, -10, -3, 3, 10, 30, 70 };
+const int ratio[8] = { -70, -40, -10, -5, 5, 10, 40, 70 };
 
 void setup() {
   Wire.begin();
@@ -69,12 +69,14 @@ void updateMotors() {
   calculateError();
   errorSum += error;
 
-  kp = 3.93;
-  ki = 0.0916;
-  kd = 1.8;
-  // kp = 5;
-  // ki = 0.13;
-  // kd = 1;
+  // kp = 3.93;
+  // ki = 0.0926;
+  // kd = 2.1;
+
+  kp = 3.98;
+  ki = 0.0896;
+  kd = 1.6;
+
 
 
 
@@ -88,10 +90,15 @@ void updateMotors() {
 
 void calculateError() {
   error = 0;
+
   for (int i = 0; i < 8; i++) {
     error += sensorData[i] * ratio[i];
   }
   error /= 100;
+
+  // if (sensorData[7] > sensorData[6]) {
+  //   error += (sensorData[7] - sensorData[6]);
+  // }
 }
 
 void move() {
