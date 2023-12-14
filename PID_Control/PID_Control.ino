@@ -1,6 +1,7 @@
 #include <Wire.h>
 #include <LiquidCrystal.h>
 #include <MsTimer2.h>
+#include <Encoder.h>
 #define FREQ_CTRL 200
 #define MAX_SPEED 60
 #define MIN_SPEED -40
@@ -9,6 +10,16 @@
 
 const int rs = 7, en = 6, d4 = 5, d5 = 4, d6 = 3, d7 = 2;
 LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
+
+Encoder myEncoder(8, 9);
+
+enum lcd_display_values {
+  DISPLAY_KP,
+  DISPLAY_KI,
+  DISPLAY_KD,
+} display_state;
+
+float encoder_reading = 0;
 
 
 int motorsBase[4];
@@ -49,12 +60,7 @@ void loop() {
     count++;
   }
   else {
-    lcd.setCursor(0, 0);
-    lcd.print(error);
-    lcd.print("                ");
-    lcd.setCursor(0, 1);
-    lcd.print(offset);
-    lcd.print("                ");
+    display_and_modify();
     count = 0;
   }
 
@@ -74,6 +80,36 @@ void loop() {
   readSensorData();
 }
 float newOffset = 0; 
+
+
+// display and modify params of pid according to current display state
+void display_and_modify() {
+  char printmsg[16];
+  lcd.setCursor(0, 0);
+  encoder_reading = myEncoder.read();
+  switch(display_state) {
+    case DISPLAY_KP:
+      kp += (float) encoder_reading / 100;
+      dtostrf(kp, 16, 2, printmsg);
+      lcd.print("K_P: ");
+      lcd.print(kp);
+      break;
+    case DISPLAY_KI:
+      ki += (float) encoder_reading / 10000;
+      dtostrf(ki, 16, 4, printmsg);
+      lcd.print("K_I: ");
+      lcd.print(ki);
+      break;
+    case DISPLAY_KD:
+      kd += (float) encoder_reading / 10;
+      dtostrf(kd, 16, 2, printmsg);
+      lcd.print("K_D: ");
+      lcd.print(kd);
+      break;
+  }
+}
+
+
 void updateMotors() {
   calculateError();
   errorSum += error;
