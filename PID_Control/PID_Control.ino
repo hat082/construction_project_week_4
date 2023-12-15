@@ -3,9 +3,9 @@
 #include <MsTimer2.h>
 #include <Encoder.h>
 #define FREQ_CTRL 200
-#define MAX_SPEED 60
+#define MAX_SPEED 70
 #define MIN_SPEED -40
-#define BASE_SPEED 40
+#define BASE_SPEED 50
 #define I2C_ADDRESS 42
 
 const int rs = 7, en = 6, d4 = 5, d5 = 4, d6 = 3, d7 = 2;
@@ -32,7 +32,7 @@ float kp, kd, ki;
 
 unsigned char dataRaw[16];
 unsigned int sensorData[8];
-const int ratio[8] = { -30, -25, -10, -5, 5, 10, 25, 30 };
+const int ratio[8] = { -30, -25, -13, -5, 5, 13, 25, 30 };
 
 void timer_init() {
   MsTimer2::set((1000 / FREQ_CTRL), Timer2ISR);
@@ -120,8 +120,8 @@ void updateMotors() {
   // ki = 0.0926;
   // kd = 2.1;
 
-  kp = 4.9;
-  ki = 0.012;
+  kp = 5.2;
+  ki = 0.019;
   kd = 7;
 
   offset = (float)kp * error + ki * errorSum + kd * (error - prev_error); 
@@ -137,7 +137,7 @@ float map(float num) {
   int negative = MIN_SPEED - BASE_SPEED;
   int positive = BASE_SPEED - MAX_SPEED;
   if (num <= 0) {
-    return 1.8 * num;
+    return 2.6 * num;
   }
   if (num > 0) {
     return num;
